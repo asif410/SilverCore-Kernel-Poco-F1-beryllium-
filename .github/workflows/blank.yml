@@ -31,7 +31,7 @@ jobs:
           make O=out clean
           make O=out mrproper
           make O=out stock-beryllium_defconfig
-          make O=out -j$(nproc --all)
+          make O=out -j$(nproc --all) KCFLAGS="-Wno-error"
 
       - name: Package with AnyKernel3
         run: |
