@@ -1,0 +1,47 @@
+name: Build Docker-Enabled Silvercore Kernel
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v4
+        with:
+          ref: thirteen
+
+      - name: Setup Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git ccache automake flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib libxml2-utils bzip2 libssl-dev bc libc6-dev-i386 lib32ncurses-dev libncurses-dev x11proto-core-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python3
+
+      - name: Clone Proton Clang
+        run: git clone --depth=1 https://github.com/kdrag0n/proton-clang.git clang
+
+      - name: Compile the Kernel
+        run: |
+          export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          export CC=clang
+          export ARCH=arm64
+          export SUBARCH=arm64
+          
+          make O=out clean
+          make O=out mrproper
+          make O=out stock-beryllium_defconfig
+          make O=out -j$(nproc --all)
+
+      - name: Package with AnyKernel3
+        run: |
+          git clone https://github.com/osm0sis/AnyKernel3.git AnyKernel3
+          cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3/ || cp out/arch/arm64/boot/Image.gz AnyKernel3/
+          cd AnyKernel3
+          zip -r9 ../Docker-Silvercore-Beryllium.zip * -x .git README.md *placeholder
+
+      - name: Upload Flashable Zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: Docker-Silvercore-Beryllium
+          path: Docker-Silvercore-Beryllium.zip
