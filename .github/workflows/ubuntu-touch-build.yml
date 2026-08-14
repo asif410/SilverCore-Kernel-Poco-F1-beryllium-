@@ -1,0 +1,35 @@
+name: Build Ubuntu Touch 24.04 (Halium 13)
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Device Repository
+        uses: actions/checkout@v4
+        with:
+          path: xiaomi-beryllium
+
+      - name: Setup Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential ca-certificates cpio curl flex git kmod libssl-dev libtinfo5 python2 unzip wget xz-utils img2simg jq
+
+      - name: Clone Halium Build Tools
+        run: |
+          cd xiaomi-beryllium
+          git clone https://gitlab.com/ubports/porting/community-ports/halium-generic-adaptation-build-tools.git -b main build-tools
+
+      - name: Compile OS Images
+        run: |
+          cd xiaomi-beryllium
+          ./build-tools/build.sh -b workdir
+
+      - name: Upload Boot and System Images
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ubuntu-Touch-Beryllium-Images
+          path: |
+            xiaomi-beryllium/out/boot.img
+            xiaomi-beryllium/out/system.tar.gz
